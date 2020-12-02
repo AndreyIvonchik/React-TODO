@@ -5,6 +5,7 @@ import IconButton from "@material-ui/core/IconButton";
 import DeleteIcon from '@material-ui/icons/Delete';
 import DoneIcon from '@material-ui/icons/Done';
 import AddIcon from '@material-ui/icons/Add';
+import EditIcon from '@material-ui/icons/Edit';
 import {green} from '@material-ui/core/colors';
 import withStyles from "@material-ui/core/styles/withStyles";
 import Grid from "@material-ui/core/Grid";
@@ -38,6 +39,7 @@ const ColorButton = withStyles((theme) => ({
 const Table = ({list, setList, selectedRecordId, onSelect}) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [isEdit, setIsEdit] = useState(false);
     const selectedRecord = list.find(({id}) => id === selectedRecordId);
     const showDoneBtn = selectedRecord && !selectedRecord?.status;
 
@@ -47,7 +49,15 @@ const Table = ({list, setList, selectedRecordId, onSelect}) => {
 
     const handleAdd = useCallback(() => setShowAddModal(true), []);
 
-    const handleCloseAddModal = useCallback(() => setShowAddModal(false), []);
+    const handleEdit = useCallback(() => {
+        setShowAddModal(true);
+        setIsEdit(true);
+    }, []);
+
+    const handleCloseAddModal = useCallback(() => {
+        setIsEdit(false);
+        setShowAddModal(false)
+    }, []);
 
     const handleDeleteModal = useCallback(() => {
         setList(list.filter(item => item.id !== selectedRecordId));
@@ -65,6 +75,20 @@ const Table = ({list, setList, selectedRecordId, onSelect}) => {
         }, ...list]);
         setShowAddModal(false);
     }, [list, setList]);
+
+    const handleEditModal = useCallback((name, description) => {
+        let position = list.findIndex(item => item.id === selectedRecordId),
+            newList = [...list.slice(0, position), {
+                id: selectedRecord.id,
+                taskName: name,
+                description: description,
+                date: selectedRecord.date,
+                status: selectedRecord.status
+            }, ...list.slice(position + 1)];
+        setList(newList);
+        setShowAddModal(false);
+        setIsEdit(false);
+    }, [list, selectedRecord, selectedRecordId, setList]);
 
     const handleDone = useCallback(() => {
         const newList = list.map((i) => {
@@ -92,6 +116,9 @@ const Table = ({list, setList, selectedRecordId, onSelect}) => {
                 onClose={handleCloseAddModal}
                 onAdd={handleAddModal}
                 list={list}
+                isEdit={isEdit}
+                onEdit={handleEditModal}
+                selectedRecordId={selectedRecordId}
             />
             <div className={styles.container}>
                 <Grid container
@@ -106,11 +133,19 @@ const Table = ({list, setList, selectedRecordId, onSelect}) => {
                     </IconButton>
 
                     {showDoneBtn && (
-                        <ColorButton
-                            aria-label="Выполнить"
-                            onClick={handleDone}>
-                            <DoneIcon/>
-                        </ColorButton>)}
+                        <>
+                            <IconButton
+                                aria-label="Редактировать"
+                                onClick={handleEdit}
+                                color="primary">
+                                <EditIcon/>
+                            </IconButton>
+                            <ColorButton
+                                aria-label="Выполнить"
+                                onClick={handleDone}>
+                                <DoneIcon/>
+                            </ColorButton>
+                        </>)}
 
                     {selectedRecord && (
                         <IconButton

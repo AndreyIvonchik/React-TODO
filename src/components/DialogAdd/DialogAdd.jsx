@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
@@ -13,7 +13,8 @@ const Transition = React.forwardRef(function Transition(props, ref) {
     return <Slide direction="up" ref={ref} {...props} />;
 });
 
-const DialogAdd = ({open, onClose, onAdd, list}) => {
+const DialogAdd = ({open, onClose, onAdd, list, isEdit, onEdit, selectedRecordId}) => {
+    const selectedRecord = list.find(({id}) => id === selectedRecordId);
     const [taskName, setTaskName] = useState('');
     const [taskDescription, setTaskDescription] = useState('');
     const [errorName, setErrorName] = useState(false);
@@ -26,25 +27,37 @@ const DialogAdd = ({open, onClose, onAdd, list}) => {
         setErrorName(!taskName);
         setErrorDescription(!taskDescription);
 
-        if (!taskDescription && !taskName) {
+        if (!taskDescription || !taskName) {
             setErrorText('Заполните обязательные поля!');
             setErrorShow(true);
 
             return false;
         }
-        if (list.find(i => i.taskName === taskName)) {
-            setErrorText('Задание с таким названием уже существует');
-            setErrorShow(true);
+        if (isEdit) {
+            if (list.find(i => i.taskName === taskName && i.id !== selectedRecordId)) {
+                setErrorText('Задание с таким названием уже существует');
+                setErrorShow(true);
 
-            return false;
+                return false;
+            }
+            onEdit(taskName, taskDescription);
+        } else {
+            if (list.find(i => i.taskName === taskName)) {
+                setErrorText('Задание с таким названием уже существует');
+                setErrorShow(true);
+
+                return false;
+            }
+            onAdd(taskName, taskDescription);
         }
-        onAdd(taskName, taskDescription);
+        setErrorName(false);
+        setErrorDescription(false);
         setTaskName('');
         setTaskDescription('');
         setErrorShow(false);
 
         return true;
-    }, [taskName, taskDescription, list, onAdd]);
+    }, [taskName, taskDescription, isEdit, list, onEdit, selectedRecordId, onAdd]);
 
     const handleTaskNameChange = useCallback((e) => {
 
@@ -52,11 +65,29 @@ const DialogAdd = ({open, onClose, onAdd, list}) => {
         setTaskName(e.target.value);
     }, []);
 
+    const onCloseModel = useCallback(() => {
+
+        setErrorName(false);
+        setErrorDescription(false);
+        setTaskName('');
+        setTaskDescription('');
+        setErrorShow(false);
+        onClose();
+    }, [onClose]);
+
     const handleTaskDescriptionChange = useCallback((e) => {
 
+        debugger
         setErrorDescription(!e.target.value);
         setTaskDescription(e.target.value);
     }, []);
+
+    useEffect(() => {
+        if (isEdit) {
+            setTaskName(selectedRecord.taskName);
+            setTaskDescription(selectedRecord.description);
+        }
+    }, [isEdit, selectedRecord]);
     return (
         <Dialog
             open={open}
@@ -66,7 +97,7 @@ const DialogAdd = ({open, onClose, onAdd, list}) => {
             aria-labelledby="alert-dialog-slide-title"
             aria-describedby="alert-dialog-slide-description"
         >
-            <DialogTitle id="alert-dialog-slide-title">{"Добавление"}</DialogTitle>
+            <DialogTitle id="alert-dialog-slide-title">{isEdit ? "Редактирование" : "Добавление"}</DialogTitle>
             <DialogContent>
                 <Collapse in={errorShow}><Alert severity="error">{errorText}</Alert></Collapse>
                 <TextField
@@ -83,7 +114,6 @@ const DialogAdd = ({open, onClose, onAdd, list}) => {
                 <TextField
                     value={taskDescription}
                     onChange={handleTaskDescriptionChange}
-                    autoFocus
                     required={true}
                     error={errorDescription}
                     margin="dense"
@@ -93,11 +123,11 @@ const DialogAdd = ({open, onClose, onAdd, list}) => {
                 />
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose} color="primary">
+                <Button onClick={onCloseModel} color="primary">
                     Отмена
                 </Button>
                 <Button onClick={handleAdd} color="primary">
-                    Добавить
+                    {isEdit ? 'Редактировать' : 'Добавить'}
                 </Button>
             </DialogActions>
         </Dialog>
