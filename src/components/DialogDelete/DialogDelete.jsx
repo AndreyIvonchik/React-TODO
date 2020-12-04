@@ -1,4 +1,6 @@
-import React from 'react';
+import React, {forwardRef, useCallback} from 'react';
+import {connect} from "react-redux";
+import {deleteTodo} from "../../actions";
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
@@ -7,11 +9,17 @@ import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import Slide from '@material-ui/core/Slide';
 
-const Transition = React.forwardRef(function Transition(props, ref) {
+const Transition = forwardRef((props, ref) => {
     return <Slide direction="up" ref={ref} {...props} />;
 });
 
-export default function DialogDelete({open, onClose, onDelete}) {
+const DialogDelete = ({open, onClose, dispatch, selectedRecordId}) => {
+
+    const handleDelete = useCallback(() => {
+
+        dispatch(deleteTodo(selectedRecordId));
+        onClose();
+    }, [dispatch, onClose, selectedRecordId]);
 
     return (
         <Dialog
@@ -32,10 +40,18 @@ export default function DialogDelete({open, onClose, onDelete}) {
                 <Button onClick={onClose} color="primary">
                     Отмена
                 </Button>
-                <Button onClick={onDelete} color="primary">
+                <Button onClick={handleDelete} color="primary">
                     Удалить
                 </Button>
             </DialogActions>
         </Dialog>
     );
 }
+
+const mapStateToProps = state => {
+    return {
+        selectedRecordId: state.tables.selectedRecordId
+    }
+}
+
+export default connect(mapStateToProps)(DialogDelete)

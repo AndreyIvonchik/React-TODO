@@ -1,5 +1,8 @@
-import {DataGrid} from "@material-ui/data-grid";
-import React, {useCallback, useEffect, useState} from "react";
+import React, {useCallback, useState} from "react";
+import {connect} from 'react-redux'
+import DialogDelete from "../DialogDelete/DialogDelete";
+import DialogAdd from "../DialogAdd/DialogAdd";
+import {selectRow, toggleTodo} from "../../actions";
 import styles from './Table.module.css';
 import IconButton from "@material-ui/core/IconButton";
 import DeleteIcon from '@material-ui/icons/Delete';
@@ -9,8 +12,7 @@ import EditIcon from '@material-ui/icons/Edit';
 import {green} from '@material-ui/core/colors';
 import withStyles from "@material-ui/core/styles/withStyles";
 import Grid from "@material-ui/core/Grid";
-import DialogDelete from "../DialogDelete/DialogDelete";
-import DialogAdd from "../DialogAdd/DialogAdd";
+import {DataGrid} from "@material-ui/data-grid";
 
 const columns = [
     {field: 'taskName', headerName: 'Название', flex: 1},
@@ -19,24 +21,25 @@ const columns = [
         field: 'date',
         headerName: 'Дата',
         type: 'date',
+        valueFormatter: ({value}) => new Date(value).toLocaleDateString(),
         flex: 1
     },
     {
         field: 'status',
         headerName: 'Статус',
-        type: 'number',
+        type: 'boolean',
         valueFormatter: ({value}) => value ? 'Выполнено' : 'Не выполнено',
         flex: 1,
     }
 ];
 
-const ColorButton = withStyles((theme) => ({
+const ColorButton = withStyles(() => ({
     root: {
         color: green[500]
     },
 }))(IconButton);
 
-const Table = ({list, setList, selectedRecordId, onSelect}) => {
+const Table = ({list, selectedRecordId, toggleTodo, selectRow}) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
@@ -44,8 +47,6 @@ const Table = ({list, setList, selectedRecordId, onSelect}) => {
     const showDoneBtn = selectedRecord && !selectedRecord?.status;
 
     const handleDelete = useCallback(() => setShowDeleteModal(true), []);
-
-    const handleCloseDeleteModal = useCallback(() => setShowDeleteModal(false), []);
 
     const handleAdd = useCallback(() => setShowAddModal(true), []);
 
@@ -59,58 +60,34 @@ const Table = ({list, setList, selectedRecordId, onSelect}) => {
         setShowAddModal(false)
     }, []);
 
-    const handleDeleteModal = useCallback(() => {
-        setList(list.filter(item => item.id !== selectedRecordId));
-        onSelect();
+    const handleDeleteClose = useCallback(() => {
+
         setShowDeleteModal(false);
-    }, [setList, list, onSelect, selectedRecordId]);
+    }, []);
 
-    const handleAddModal = useCallback((name, description) => {
-        setList([{
-            id: +new Date(),
-            taskName: name,
-            description: description,
-            date: new Date().toLocaleDateString(),
-            status: 0
-        }, ...list]);
+    const handleAddModal = useCallback(() => {
+
         setShowAddModal(false);
-    }, [list, setList]);
+    }, []);
 
-    const handleEditModal = useCallback((name, description) => {
-        let position = list.findIndex(item => item.id === selectedRecordId),
-            newList = [...list.slice(0, position), {
-                id: selectedRecord.id,
-                taskName: name,
-                description: description,
-                date: selectedRecord.date,
-                status: selectedRecord.status
-            }, ...list.slice(position + 1)];
-        setList(newList);
+    const handleEditModal = useCallback(() => {
         setShowAddModal(false);
         setIsEdit(false);
-    }, [list, selectedRecord, selectedRecordId, setList]);
+    }, []);
 
     const handleDone = useCallback(() => {
-        const newList = list.map((i) => {
-            if (i.id === selectedRecordId) {
-                return {
-                    ...i,
-                    status: 1
-                };
-            }
-            return i;
-        });
 
-        setList([...newList]);
-    }, [list, setList, selectedRecordId]);
+        toggleTodo(selectedRecordId);
+    }, [selectedRecordId, toggleTodo]);
 
     const handleRowSelected = useCallback(({data}) => {
-        onSelect(data);
-    }, [onSelect]);
+
+        selectRow(data?.id);
+    }, [selectRow]);
 
     return (
         <>
-            <DialogDelete open={showDeleteModal} onClose={handleCloseDeleteModal} onDelete={handleDeleteModal}/>
+            <DialogDelete open={showDeleteModal} onClose={handleDeleteClose}/>
             <DialogAdd
                 open={showAddModal}
                 onClose={handleCloseAddModal}
@@ -166,4 +143,19 @@ const Table = ({list, setList, selectedRecordId, onSelect}) => {
     );
 }
 
-export default Table;
+const mapStateToProps = state => {
+    console.log(state);
+    return {
+        list: state.todos,
+        selectedRecordId: state.tables.selectedRecordId
+    }
+}
+
+const mapDispatchToProps = (dispatch) => {
+    return {
+        toggleTodo: id => dispatch(toggleTodo(id)),
+        selectRow: id => dispatch(selectRow(id))
+    }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Table)
