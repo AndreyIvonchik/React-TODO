@@ -138,8 +138,4 @@ const Table = () => {
     );
 }
 
-const mapStateToProps = state => {
-    console.log(state);
-}
-
-export default connect(mapStateToProps)(Table)
+export default connect()(Table)
