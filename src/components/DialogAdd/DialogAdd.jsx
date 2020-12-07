@@ -1,21 +1,19 @@
-import React, {forwardRef, useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
+import {connect, useDispatch, useSelector} from 'react-redux'
+import {addTodo, editTodo} from '../../actions'
+import Transition from "../Transition";
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
-import Slide from '@material-ui/core/Slide';
 import TextField from "@material-ui/core/TextField";
 import Alert from '@material-ui/lab/Alert';
-import {connect, useDispatch} from 'react-redux'
-import {addTodo, editTodo} from '../../actions'
 
-const Transition = forwardRef((props, ref) => {
-    return <Slide direction="up" ref={ref} {...props} />;
-});
-
-const DialogAdd = ({open, onClose, list, isEdit, selectedRecordId}) => {
+const DialogAdd = ({open, onClose, isEdit}) => {
     const dispatch = useDispatch();
+    const selectedRecordId = useSelector(state => state.tables.selectedRecordId);
+    const list = useSelector(state => state.todos);
     const selectedRecord = list.find(({id}) => id === selectedRecordId);
     const [taskName, setTaskName] = useState('');
     const [taskDescription, setTaskDescription] = useState('');
@@ -24,8 +22,16 @@ const DialogAdd = ({open, onClose, list, isEdit, selectedRecordId}) => {
     const [errorText, setErrorText] = useState('');
     const [errorShow, setErrorShow] = useState(false);
 
-    const handleAdd = useCallback(() => {
+    const onCloseModal = useCallback(() => {
+        setErrorName(false);
+        setErrorDescription(false);
+        setTaskName('');
+        setTaskDescription('');
+        setErrorShow(false);
+        onClose();
+    }, [onClose]);
 
+    const handleAdd = useCallback(() => {
         setErrorName(!taskName);
         setErrorDescription(!taskDescription);
 
@@ -55,26 +61,14 @@ const DialogAdd = ({open, onClose, list, isEdit, selectedRecordId}) => {
         onCloseModal();
 
         return true;
-    }, [taskName, taskDescription, isEdit, list, dispatch, selectedRecordId]);
+    }, [taskName, taskDescription, isEdit, onCloseModal, list, dispatch, selectedRecordId]);
 
     const handleTaskNameChange = useCallback((e) => {
-
         setErrorName(!e.target.value);
         setTaskName(e.target.value);
     }, []);
 
-    const onCloseModal = useCallback(() => {
-
-        setErrorName(false);
-        setErrorDescription(false);
-        setTaskName('');
-        setTaskDescription('');
-        setErrorShow(false);
-        onClose();
-    }, [onClose]);
-
     const handleTaskDescriptionChange = useCallback((e) => {
-
         setErrorDescription(!e.target.value);
         setTaskDescription(e.target.value);
     }, []);

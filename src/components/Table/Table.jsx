@@ -1,8 +1,8 @@
 import React, {useCallback, useState} from "react";
-import {connect} from 'react-redux'
+import {connect, useDispatch, useSelector} from 'react-redux'
 import DialogDelete from "../DialogDelete/DialogDelete";
 import DialogAdd from "../DialogAdd/DialogAdd";
-import {selectRow, toggleTodo} from "../../actions";
+import {fetchPosts, selectRow, toggleTodo} from "../../actions";
 import styles from './Table.module.css';
 import IconButton from "@material-ui/core/IconButton";
 import DeleteIcon from '@material-ui/icons/Delete';
@@ -13,6 +13,8 @@ import {green} from '@material-ui/core/colors';
 import withStyles from "@material-ui/core/styles/withStyles";
 import Grid from "@material-ui/core/Grid";
 import {DataGrid} from "@material-ui/data-grid";
+import CloudUploadIcon from '@material-ui/icons/CloudUpload';
+import Alert from "@material-ui/lab/Alert";
 
 const columns = [
     {field: 'taskName', headerName: 'Название', flex: 1},
@@ -39,7 +41,11 @@ const ColorButton = withStyles(() => ({
     },
 }))(IconButton);
 
-const Table = ({list, selectedRecordId, toggleTodo, selectRow}) => {
+const Table = () => {
+    const dispatch = useDispatch();
+    const errorText = useSelector((state) => state.tables.errorText);
+    const list = useSelector((state) => state.todos);
+    const selectedRecordId = useSelector((state) => state.tables?.selectedRecordId);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
@@ -55,35 +61,20 @@ const Table = ({list, selectedRecordId, toggleTodo, selectRow}) => {
         setIsEdit(true);
     }, []);
 
+    const handleDone = useCallback(() =>
+        dispatch(toggleTodo(selectedRecordId)), [dispatch, selectedRecordId]);
+
+    const handleLoad = useCallback(() => dispatch(fetchPosts()), [dispatch]);
+
     const handleCloseAddModal = useCallback(() => {
         setIsEdit(false);
-        setShowAddModal(false)
-    }, []);
-
-    const handleDeleteClose = useCallback(() => {
-
-        setShowDeleteModal(false);
-    }, []);
-
-    const handleAddModal = useCallback(() => {
-
         setShowAddModal(false);
     }, []);
 
-    const handleEditModal = useCallback(() => {
-        setShowAddModal(false);
-        setIsEdit(false);
-    }, []);
+    const handleDeleteClose = useCallback(() => setShowDeleteModal(false), []);
 
-    const handleDone = useCallback(() => {
-
-        toggleTodo(selectedRecordId);
-    }, [selectedRecordId, toggleTodo]);
-
-    const handleRowSelected = useCallback(({data}) => {
-
-        selectRow(data?.id);
-    }, [selectRow]);
+    const handleRowSelected = useCallback(({data}) => 
+        dispatch(selectRow(data?.id)), [dispatch]);
 
     return (
         <>
@@ -91,16 +82,20 @@ const Table = ({list, selectedRecordId, toggleTodo, selectRow}) => {
             <DialogAdd
                 open={showAddModal}
                 onClose={handleCloseAddModal}
-                onAdd={handleAddModal}
-                list={list}
                 isEdit={isEdit}
-                onEdit={handleEditModal}
-                selectedRecordId={selectedRecordId}
             />
+            {errorText && <Alert severity="error">{errorText}</Alert>}
             <div className={styles.container}>
                 <Grid container
                       direction="row"
                       justify="flex-end">
+
+                    <IconButton
+                        aria-label="Загрузить"
+                        onClick={handleLoad}
+                        color="default">
+                        <CloudUploadIcon/>
+                    </IconButton>
 
                     <IconButton
                         aria-label="Добавить"
@@ -145,17 +140,6 @@ const Table = ({list, selectedRecordId, toggleTodo, selectRow}) => {
 
 const mapStateToProps = state => {
     console.log(state);
-    return {
-        list: state.todos,
-        selectedRecordId: state.tables.selectedRecordId
-    }
 }
 
-const mapDispatchToProps = (dispatch) => {
-    return {
-        toggleTodo: id => dispatch(toggleTodo(id)),
-        selectRow: id => dispatch(selectRow(id))
-    }
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(Table)
+export default connect(mapStateToProps)(Table)
